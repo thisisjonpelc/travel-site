@@ -2,19 +2,32 @@ const gulp = require('gulp');
 const svgSprite = require('gulp-svg-sprite');
 const rename = require('gulp-rename');
 const del = require('del');
+const svg2png = require('gulp-svg2png');
 
-const config = {
-    mode:{
-        css: {
-            sprite: 'sprite.svg',
-            render:{
-                css: {
-                    template: './gulp/templates/sprite.css'
-                }
-            }
+var config = {
+    shape:{
+        spacing:{
+            padding:1
         }
+    },
+    mode: {
+      css: {
+        variables: {
+          replaceSvgWithPng: function() {
+            return function(sprite, render) {
+              return render(sprite).split('.svg').join('.png');
+            }
+          }
+        },
+        sprite: 'sprite.svg',
+        render: {
+          css: {
+            template: './gulp/templates/sprite.css'
+          }
+        }
+      }
     }
-}
+  }
 
 gulp.task('beginClean', () => {
     return del(['./app/temp/sprite', './app/assets/images/sprites']);
@@ -26,8 +39,19 @@ gulp.task('createSprite', ['beginClean'], () => {
         .pipe(gulp.dest('./app/temp/sprite'));
 });
 
-gulp.task('copySpriteGraphic', ['createSprite'], () => {
+gulp.task('createPngCopy', ['createSprite'], () => {
+    return gulp.src('./app/temp/sprite/css/*.svg')
+        .pipe(svg2png())
+        .pipe(gulp.dest('./app/temp/sprite/css'));
+});
+
+gulp.task('copySpriteGraphic', ['createPngCopy'], () => {
     return gulp.src('./app/temp/sprite/css/**/*.svg')
+        .pipe(gulp.dest('./app/assets/images/sprites'));
+});
+
+gulp.task('copySpritePngGraphic', ['createPngCopy'], () => {
+    return gulp.src('./app/temp/sprite/css/**/*.png')
         .pipe(gulp.dest('./app/assets/images/sprites'));
 });
 
@@ -41,4 +65,4 @@ gulp.task('endClean', ['copySpriteGraphic', 'copySpriteCSS'], () => {
     return del('./app/temp/sprite');
 });
 
-gulp.task('icons', ['beginClean', 'createSprite', 'copySpriteGraphic', 'copySpriteCSS', 'endClean']);
+gulp.task('icons', ['beginClean', 'createSprite', 'createPngCopy', 'copySpriteGraphic', 'copySpritePngGraphic', 'copySpriteCSS', 'endClean']);
